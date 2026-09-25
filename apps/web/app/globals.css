@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-paper: #f3efe6;
+  --text-ink: #1c1914;
+  --text-muted: #5f584e;
+  --border-hairline: #e0d6c6;
+  --bg-card: #fffdf8;
+  --pine-green: #1e4636;
+  --moss-green: #e5f0e8;
+  --copper-accent: #8d3f1e;
+  --amber-light: #fdf6ed;
+}
+
+body {
+  background-color: var(--bg-paper);
+  color: var(--text-ink);
+  font-family: var(--font-figtree), system-ui, sans-serif;
+  margin: 0;
+  padding: 0;
+}

@@ -1,0 +1,40 @@
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Databases & local data
+*.db
+*.sqlite3
+data/
+data/storage/
+
+# Node & Next.js
+apps/web/node_modules/
+node_modules/
+apps/web/.next/
+.next/
+apps/web/out/
+out/
+build/
+dist/
+
+# Playwright & Testing
+playwright-report/
+test-results/
+coverage/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

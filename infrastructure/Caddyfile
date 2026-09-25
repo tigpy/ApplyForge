@@ -1,0 +1,16 @@
+# Caddy reverse proxy for ApplyForge
+{
+    admin off
+}
+
+:80 {
+    # API endpoints
+    handle /api/* {
+        reverse_proxy api:8000
+    }
+
+    # Static / Next.js Web frontend
+    handle {
+        reverse_proxy web:3000
+    }
+}

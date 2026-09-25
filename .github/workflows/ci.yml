@@ -1,0 +1,78 @@
+name: ApplyForge CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  backend-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_DB: applyforge_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgrespassword
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest pytest-cov uvicorn fastapi pydantic sqlalchemy psycopg2-binary reportlab requests python-dotenv alembic celery openai pymupdf python-docx
+
+      - name: Run Alembic migrations
+        env:
+          DATABASE_URL: postgresql://postgres:postgrespassword@localhost:5432/applyforge_test
+        run: |
+          alembic upgrade head
+
+      - name: Run Pytest Suite
+        env:
+          DATABASE_URL: sqlite:///:memory:
+          LLM_PROVIDER: mock
+          SAFE_MODE: true
+        run: |
+          python -m pytest -v
+
+  frontend-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Check web files
+        run: |
+          test -f apps/web/package.json
+          test -f apps/web/app/page.tsx
