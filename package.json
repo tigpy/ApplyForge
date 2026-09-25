@@ -1,0 +1,13 @@
+{
+  "name": "applyforge",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm --filter applyforge-web dev",
+    "build": "pnpm --filter applyforge-web build",
+    "start": "pnpm --filter applyforge-web start",
+    "lint": "pnpm --filter applyforge-web lint",
+    "test": "pnpm --filter applyforge-web test"
+  },
+  "packageManager": "pnpm@9.12.3"
+}
