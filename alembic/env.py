@@ -20,7 +20,10 @@ if config.config_file_name is not None:
 target_metadata = Base.metadata
 
 def get_url():
-    return os.getenv("DATABASE_URL", settings.DATABASE_URL)
+    url = os.getenv("DATABASE_URL", settings.DATABASE_URL)
+    if url.startswith("postgresql://"):
+        url = url.replace("postgresql://", "postgresql+psycopg://", 1)
+    return url
 
 def run_migrations_offline() -> None:
     url = get_url()

@@ -1,0 +1,8 @@
+.git
+job-application-automation-docs
+data
+.pytest_cache
+*.pyc
+__pycache__
+apps/web/node_modules
+apps/web/.next

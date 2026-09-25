@@ -4,14 +4,18 @@ from sqlalchemy.orm import sessionmaker, Session
 from packages.shared.config import settings
 from packages.domain.models import Base
 
-if settings.DATABASE_URL.startswith("sqlite"):
-    db_file_path = settings.DATABASE_URL.replace("sqlite:///", "")
+db_url = settings.DATABASE_URL
+if db_url.startswith("postgresql://"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg://", 1)
+
+if db_url.startswith("sqlite"):
+    db_file_path = db_url.replace("sqlite:///", "")
     Path(db_file_path).parent.mkdir(parents=True, exist_ok=True)
 
-connect_args = {"check_same_thread": False} if settings.DATABASE_URL.startswith("sqlite") else {}
+connect_args = {"check_same_thread": False} if db_url.startswith("sqlite") else {}
 
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     connect_args=connect_args,
     echo=False
 )

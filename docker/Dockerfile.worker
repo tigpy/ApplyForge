@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir celery redis sqlalchemy psycopg2-binary reportlab requests python-dotenv alembic openai pymupdf python-docx playwright
+RUN pip install --no-cache-dir celery redis sqlalchemy pydantic pydantic-settings email-validator psycopg2-binary "psycopg[binary]" reportlab requests python-dotenv alembic openai pymupdf python-docx playwright beautifulsoup4
 
 COPY . .
 
