@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 COPY pyproject.toml .
-RUN pip install --no-cache-dir uvicorn fastapi pydantic pydantic-settings email-validator sqlalchemy psycopg2-binary "psycopg[binary]" redis reportlab requests python-dotenv alembic celery openai pymupdf python-docx beautifulsoup4
+RUN pip install --no-cache-dir uvicorn fastapi pydantic sqlalchemy psycopg2-binary redis reportlab requests python-dotenv alembic celery openai pymupdf python-docx
 
 COPY . .
 

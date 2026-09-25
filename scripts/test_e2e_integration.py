@@ -40,27 +40,23 @@ def main():
     unapplied_jobs = [j for j in jobs if j["id"] not in app_job_ids]
     if not unapplied_jobs:
         import time
-        from packages.domain.database import SessionLocal
-        from packages.domain.models import Job, JobSource
-        db = SessionLocal()
-        src = db.query(JobSource).first()
         ts = int(time.time())
-        new_job = Job(
-            source_id=src.id if src else 1,
-            external_id=f"E2E-AUTO-{ts}",
-            title="Security Automation Engineer",
-            company="ForgeGuard Cyber",
-            location="Remote",
-            work_mode="REMOTE",
-            employment_type="FULL_TIME",
-            description_raw="Seeking Security Automation Engineer with Python, Linux, and FastAPI.",
-            description_normalized="Seeking Security Automation Engineer with Python, Linux, and FastAPI."
+        status, new_job = request_json(
+            f"{BASE_URL}/jobs/import",
+            method="POST",
+            data={
+                "source_name": "manual",
+                "external_id": f"E2E-AUTO-{ts}",
+                "title": f"Security Automation Engineer {ts}",
+                "company": "ForgeGuard Cyber",
+                "location": "Remote",
+                "work_mode": "REMOTE",
+                "employment_type": "FULL_TIME",
+                "description_raw": "Seeking Security Automation Engineer with Python, Linux, and FastAPI."
+            }
         )
-        db.add(new_job)
-        db.commit()
-        db.refresh(new_job)
-        job = {"id": new_job.id, "title": new_job.title, "company": new_job.company}
-        db.close()
+        assert status == 201, f"Failed to create job via API: {status}, {new_job}"
+        job = new_job
     else:
         job = unapplied_jobs[0]
     job_id = job["id"]

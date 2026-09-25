@@ -40,11 +40,11 @@ services:
     environment:
       - APP_NAME=ApplyForge
       - APP_ENV=production
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/applyforge
+      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/applyforge
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4o-mini}
-      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - LLM_PROVIDER=openai
       - SAFE_MODE=true
       - ZERO_SILENT_SUBMISSIONS=true
     ports:
@@ -62,10 +62,10 @@ services:
     container_name: applyforge-worker
     restart: always
     environment:
-      - DATABASE_URL=postgresql+psycopg2://postgres:postgrespassword@postgres:5432/applyforge
+      - DATABASE_URL=postgresql://postgres:postgrespassword@postgres:5432/applyforge
       - REDIS_URL=redis://redis:6379/0
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
-      - LLM_PROVIDER=${LLM_PROVIDER:-mock}
+      - LLM_PROVIDER=openai
     depends_on:
       postgres:
         condition: service_healthy

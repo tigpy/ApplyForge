@@ -7,8 +7,7 @@ from packages.ai.openai_provider import OpenAIProvider
 from packages.shared.config import settings
 
 def get_llm_provider() -> LLMProvider:
-    provider_name = getattr(settings, "LLM_PROVIDER", "mock").lower()
-    openai_key = getattr(settings, "OPENAI_API_KEY", "")
-    if provider_name == "openai" and openai_key:
+    provider_name = settings.LLM_PROVIDER.lower()
+    if provider_name == "openai" or (provider_name != "mock" and settings.OPENAI_API_KEY):
         return OpenAIProvider()
     return MockLLMProvider()

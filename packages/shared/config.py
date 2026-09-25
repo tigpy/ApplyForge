@@ -13,10 +13,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./data/applyforge.db"
     REDIS_URL: str = "redis://localhost:6379/0"
     
-    # LLM & AI
-    LLM_PROVIDER: str = "mock"
-    LLM_MODEL: str = "gpt-4o-mini"
-    ANTHROPIC_API_KEY: str = ""
+    # OpenAI
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     

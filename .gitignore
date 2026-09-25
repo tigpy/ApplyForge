@@ -8,10 +8,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 *.so
-*.egg-info/
 .pytest_cache/
 .coverage
 htmlcov/
+*.egg-info/
 
 # Databases & local data
 *.db
@@ -28,6 +28,9 @@ apps/web/out/
 out/
 build/
 dist/
+.turbo/
+**/.turbo/
+.pnpm-store/
 
 # Playwright & Testing
 playwright-report/
