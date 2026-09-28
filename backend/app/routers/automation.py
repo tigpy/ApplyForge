@@ -14,7 +14,10 @@ def run_automation(body: AutomationRunRequest | None = None, db: Session = Depen
     try:
         service = AutomationService(db)
         return service.run_job_search(
-            connector_name=body.connector, query=body.query, auto_apply=body.auto_apply
+            connector_name=body.connector,
+            query=body.query,
+            auto_apply=body.auto_apply,
+            min_match_score=body.min_match_score,
         )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

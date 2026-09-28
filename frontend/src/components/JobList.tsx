@@ -13,11 +13,15 @@ export function JobList({ jobs }: { jobs: Job[] }) {
               {j.title} · {j.company}
             </Link>
             <div className="text-xs text-slate-500">{j.location} · {j.remote_type} · {j.source}</div>
+            {j.selected_resume_name && (
+              <div className="mt-0.5 text-xs text-indigo-700 font-medium">Best Resume: {j.selected_resume_name}</div>
+            )}
           </div>
           <div className="flex items-center gap-3 text-sm">
-            <span>{j.match_score === null ? "not matched" : `${j.match_score}%`}</span>
+            <span className="font-semibold">{j.match_score === null ? "not matched" : `${j.match_score}%`}</span>
             <StatusBadge status={j.status} />
           </div>
+
         </li>
       ))}
     </ul>

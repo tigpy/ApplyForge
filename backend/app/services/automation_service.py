@@ -22,7 +22,8 @@ class AutomationService:
         self.notifier = get_notification_service()
 
     def run_job_search(
-        self, connector_name: str = "", query: str = "", auto_apply: bool = True
+        self, connector_name: str = "", query: str = "", auto_apply: bool = True,
+        min_match_score: int | None = None,
     ) -> AutomationRunResult:
         resumes = ResumeRepository(self.db).list()
         if not resumes:
@@ -71,8 +72,10 @@ class AutomationService:
             except Exception as exc:
                 log.exception("Error matching job %s: %s", job.id, exc)
 
-        # 4. Rank opportunities by match score descending
-        eligible_apps.sort(key=lambda a: (a.match_score or 0), reverse=True)
+        # 4. Filter opportunities by min_match_score if specified, and rank descending
+        threshold = min_match_score if min_match_score is not None else 75
+        qualifying_apps = [a for a in eligible_apps if (a.match_score or 0) >= threshold]
+        qualifying_apps.sort(key=lambda a: (a.match_score or 0), reverse=True)
 
         # 5 & 6. Attempt applications automatically
         applied_count = 0
@@ -82,7 +85,7 @@ class AutomationService:
 
         app_connector = get_application_connector()
         if auto_apply:
-            for app in eligible_apps:
+            for app in qualifying_apps:
                 try:
                     res = apply_application(
                         self.db,
@@ -92,9 +95,9 @@ class AutomationService:
                         notifier=self.notifier,
                     )
                     status_name = res.status
-                    if status_name == S.APPLIED.value:
+                    if status_name in (S.APPLIED.value, "SUBMITTED"):
                         applied_count += 1
-                    elif status_name == S.REQUIRES_MANUAL_ACTION.value:
+                    elif status_name in (S.REQUIRES_MANUAL_ACTION.value, "HUMAN_INTERVENTION_REQUIRED"):
                         manual_count += 1
                     elif status_name == S.BLOCKED.value:
                         blocked_count += 1
@@ -129,7 +132,7 @@ class AutomationService:
         return AutomationRunResult(
             discovered=total_discovered,
             matched=matched_count,
-            eligible=len(eligible_apps),
+            eligible=len(qualifying_apps),
             applied=applied_count,
             requires_manual_action=manual_count,
             blocked=blocked_count,
@@ -138,3 +141,60 @@ class AutomationService:
             duplicate=dup_count,
             details=details,
         )
+
+
+def run_job_application(db: Session, job_id: int, connector=None) -> Application:
+    """End-to-end single job pipeline: match against all resumes -> select best -> apply safely -> return application."""
+    from app.errors import ServiceError
+    from app.services.application_service import _is_duplicate
+
+    job = db.get(Job, job_id)
+    if job is None:
+        raise ServiceError(404, "Job not found")
+
+    # Safety: Check if already applied
+    existing_app = db.query(Application).filter_by(job_id=job.id).first()
+    if existing_app is not None:
+        if existing_app.status in (S.APPLIED.value, "SUBMITTED"):
+            return existing_app
+        if _is_duplicate(db, existing_app):
+            existing_app.status = S.DUPLICATE.value
+            existing_app.failure_reason = "ALREADY_APPLIED: Same job was already applied via another posting"
+            db.commit()
+            return existing_app
+
+    # Check resumes exist
+    resumes = ResumeRepository(db).list()
+    if not resumes:
+        raise ServiceError(409, "Upload at least one resume before applying")
+
+    # Match against all resumes and select best
+    match = run_match(db, job)
+    app = db.query(Application).filter_by(job_id=job.id).first()
+    if not app:
+        raise ServiceError(500, "Application record could not be registered")
+
+    # If score is below threshold, skip
+    if match.recommendation == "SKIP" or app.status == S.SKIPPED.value:
+        return app
+
+    # If duplicate detected after matching
+    if app.status == S.DUPLICATE.value:
+        return app
+
+    # Apply automatically
+    app = apply_application(db, app.id, connector=connector)
+    return app
+
+
+def run_automation(
+    db: Session, connector_name: str = "", query: str = "", min_match_score: int | None = None
+) -> AutomationRunResult:
+    """Full automation workflow entrypoint."""
+    service = AutomationService(db)
+    return service.run_job_search(
+        connector_name=connector_name,
+        query=query,
+        auto_apply=True,
+        min_match_score=min_match_score,
+    )

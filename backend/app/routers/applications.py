@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.errors import ServiceError
 from app.models import Application
-from app.presenters import application_detail_out, application_out
-from app.schemas import ApplicationDetailOut, ApplicationOut
+from app.presenters import application_detail_out, application_out, application_result_out
+from app.schemas import ApplicationDetailOut, ApplicationOut, ApplicationResultOut
 from app.services.application_service import apply_application
 
 router = APIRouter(prefix="/applications", tags=["applications"])
@@ -22,6 +22,15 @@ def get_application(application_id: int, db: Session = Depends(get_db)):
     if app is None:
         raise ServiceError(404, "Application not found")
     return application_detail_out(app)
+
+
+@router.get("/{application_id}/result", response_model=ApplicationResultOut)
+def get_application_result(application_id: int, db: Session = Depends(get_db)):
+    app = db.get(Application, application_id)
+    if app is None:
+        raise ServiceError(404, "Application not found")
+    return application_result_out(app)
+
 
 
 @router.post("/{application_id}/apply", response_model=ApplicationDetailOut)

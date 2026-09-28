@@ -5,8 +5,9 @@ from app.ai.client import get_ai_provider
 from app.database import get_db
 from app.errors import ServiceError
 from app.models import Job
-from app.presenters import job_detail_out, job_out, match_out
+from app.presenters import application_detail_out, job_detail_out, job_out, match_out
 from app.schemas import (
+    ApplicationDetailOut,
     AutomationRunRequest,
     AutomationRunResult,
     DiscoverRequest,
@@ -15,8 +16,10 @@ from app.schemas import (
     JobOut,
     MatchResultOut,
 )
+from app.services.automation_service import run_job_application
 from app.services.job_service import JobService
 from app.services.matching_service import run_match
+
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -48,6 +51,15 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
 @router.post("/{job_id}/match", response_model=MatchResultOut)
 def match_job(job_id: int, db: Session = Depends(get_db)):
     return match_out(db, run_match(db, _get_job(db, job_id)))
+
+
+@router.post("/{job_id}/apply", response_model=ApplicationDetailOut)
+def apply_job(job_id: int, db: Session = Depends(get_db)):
+    """Automatic application pipeline for a specific job: match -> select best resume -> apply -> notify -> result."""
+    app = run_job_application(db, job_id)
+    return application_detail_out(app)
+
+
 
 
 @router.post("/run-search", response_model=AutomationRunResult)

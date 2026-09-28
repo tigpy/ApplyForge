@@ -46,6 +46,13 @@ class MatchResultData(BaseModel):
     reasons: list[str]
     recommendation: Recommendation
     resume_scores: list[ResumeScore] = []
+    resume_id: int | None = None
+    matched_skills: list[str] = []
+    missing_skills: list[str] = []
+    matched_certifications: list[str] = []
+    role_match: bool = False
+    experience_match: bool = True
+    explanation: str = ""
 
 
 class MatchResultOut(MatchResultData, ORM):
@@ -71,7 +78,9 @@ class JobOut(ORM):
     status: ApplicationStatus
     match_score: int | None = None
     selected_resume_id: int | None = None
+    selected_resume_name: str | None = None
     application_id: int | None = None
+
 
 
 class JobDetailOut(JobOut):
@@ -118,6 +127,23 @@ class ApplicationDetailOut(ApplicationOut):
     events: list[ApplicationEventOut]
 
 
+class ApplicationResultOut(BaseModel):
+    application_id: int
+    job_id: int
+    company: str
+    role: str
+    selected_resume_id: int | None = None
+    resume_name: str | None = None
+    match_score: int | None = None
+    status: ApplicationStatus
+    submitted_at: datetime | None = None
+    confirmation_text: str | None = None
+    failure_reason: str | None = None
+    application_url: str = ""
+    created_at: datetime
+
+
+
 # ---- profile / settings
 class ProfileBase(BaseModel):
     name: str = ""
@@ -160,6 +186,7 @@ class AutomationRunRequest(BaseModel):
     connector: str = ""  # empty = use preferred_job_sources from profile
     query: str = ""
     auto_apply: bool = True  # whether to automatically apply to eligible matches
+    min_match_score: int | None = None
 
 
 class AutomationRunResult(BaseModel):

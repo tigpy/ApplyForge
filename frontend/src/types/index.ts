@@ -13,14 +13,23 @@ export interface MatchResult {
   score: number; strengths: string[]; missing_requirements: string[]; reasons: string[];
   recommendation: "APPLY" | "SKIP"; resume_scores: ResumeScore[];
   application_id: number | null; application_status: Status | null; created_at: string;
+  resume_id?: number | null; matched_skills?: string[]; missing_skills?: string[];
+  matched_certifications?: string[]; role_match?: boolean; experience_match?: boolean; explanation?: string;
 }
 export interface Job {
   id: number; company: string; title: string; location: string; remote_type: string; url: string;
   application_url: string; source: string; requirements: string[]; discovered_at: string; status: Status;
-  match_score: number | null; selected_resume_id: number | null; application_id: number | null;
+  match_score: number | null; selected_resume_id: number | null; selected_resume_name?: string | null; application_id: number | null;
 }
 export interface JobDetail extends Job { description: string; match: MatchResult | null }
 export interface ApplicationEvent { id: number; event: string; details: string; created_at: string }
+export interface ApplicationResult {
+  application_id: number; job_id: number; company: string; role: string;
+  selected_resume_id: number | null; resume_name: string | null; match_score: number | null;
+  status: Status; submitted_at: string | null; confirmation_text: string | null;
+  failure_reason: string | null; application_url: string; created_at: string;
+}
+
 export interface Application {
   id: number; job_id: number; resume_id: number | null; status: Status; match_score: number | null;
   application_url: string; submitted_at: string | null; failure_reason: string | null;

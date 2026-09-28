@@ -1,4 +1,4 @@
-import type { Application, ApplicationDetail, AutomationRunResult, Job, JobDetail, MatchResult, Profile, Resume } from "../types";
+import type { Application, ApplicationDetail, ApplicationResult, AutomationRunResult, Job, JobDetail, MatchResult, Profile, Resume } from "../types";
 
 const BASE = "/api";
 
@@ -37,10 +37,13 @@ export const api = {
   getJob: (id: number) => request<JobDetail>(`/jobs/${id}`),
   discoverJobs: () => request<{ discovered: number; jobs: Job[] }>("/jobs/discover", json("POST", {})),
   matchJob: (id: number) => request<MatchResult>(`/jobs/${id}/match`, json("POST")),
+  applyJob: (jobId: number) => request<ApplicationDetail>(`/jobs/${jobId}/apply`, json("POST")),
 
   listApplications: () => request<Application[]>("/applications"),
   getApplication: (id: number) => request<ApplicationDetail>(`/applications/${id}`),
+  getApplicationResult: (id: number) => request<ApplicationResult>(`/applications/${id}/result`),
   applyTo: (id: number) => request<ApplicationDetail>(`/applications/${id}/apply`, json("POST")),
+
 
   getProfile: () => request<Profile>("/profile"),
   saveProfile: (p: Profile) => request<Profile>("/profile", json("PUT", p)),
