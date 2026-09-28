@@ -1,0 +1,22 @@
+# secrets
+.env
+*.env
+!.env.example
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# node
+node_modules/
+dist/
+playwright-report/
+test-results/
+
+# runtime data (keep folders)
+data/*
+!data/.gitkeep
+resumes/*
+!resumes/.gitkeep
