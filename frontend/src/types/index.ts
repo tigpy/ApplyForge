@@ -1,10 +1,11 @@
 export type Status =
   | "DISCOVERED" | "MATCHED" | "ELIGIBLE" | "QUEUED" | "APPLYING"
-  | "APPLIED" | "FAILED" | "SKIPPED" | "DUPLICATE" | "BLOCKED";
+  | "APPLIED" | "FAILED" | "SKIPPED" | "DUPLICATE" | "BLOCKED"
+  | "REQUIRES_MANUAL_ACTION";
 
 export interface Resume {
   id: number; filename: string; display_name: string; tags: string[];
-  target_role: string | null; extracted_chars: number; created_at: string;
+  target_role: string | null; extracted_chars: number; extracted_text: string; created_at: string;
 }
 export interface ResumeScore { resume_id: number; resume_name: string; score: number }
 export interface MatchResult {
@@ -30,4 +31,15 @@ export interface ApplicationDetail extends Application { events: ApplicationEven
 export interface Profile {
   name: string; email: string; phone: string; location: string; linkedin: string; github: string;
   portfolio: string; education: string[]; skills: string[]; experience: string[]; facts: Record<string, string>;
+  target_roles: string[]; preferred_locations: string[]; remote_preference: string;
+  min_experience: number; salary_preference: string; excluded_roles: string[];
+  excluded_companies: string[]; preferred_job_sources: string[];
+}
+export interface AutomationRunResult {
+  discovered: number; matched: number; eligible: number; applied: number;
+  requires_manual_action: number; blocked: number; failed: number;
+  skipped: number; duplicate: number; details: Array<{
+    job_id: number; company: string; role: string; resume: string | null;
+    match_score: number; status: string; message: string;
+  }>;
 }

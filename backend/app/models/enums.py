@@ -14,6 +14,7 @@ class ApplicationStatus(str, Enum):
     SKIPPED = "SKIPPED"
     DUPLICATE = "DUPLICATE"
     BLOCKED = "BLOCKED"
+    REQUIRES_MANUAL_ACTION = "REQUIRES_MANUAL_ACTION"
 
 
 class Recommendation(str, Enum):

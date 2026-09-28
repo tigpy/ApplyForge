@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from app.ai.client import AIProvider
 from app.connectors import get_job_connector
 from app.errors import ServiceError
-from app.models import Job
+from app.models import CandidateProfile, Job
 
 
 def make_fingerprint(company: str, title: str, location: str) -> str:
@@ -24,7 +24,15 @@ class JobService:
         except ValueError as exc:
             raise ServiceError(400, str(exc)) from exc
         new, jobs = 0, []
+        profile = self.db.get(CandidateProfile, 1)
+        excluded_companies = [c.lower().strip() for c in (profile.excluded_companies or []) if c.strip()] if profile else []
+        excluded_roles = [r.lower().strip() for r in (profile.excluded_roles or []) if r.strip()] if profile else []
+
         for d in connector.discover_jobs(query):
+            if any(c in d.company.lower() for c in excluded_companies):
+                continue
+            if any(r in d.title.lower() for r in excluded_roles):
+                continue
             existing = self.db.query(Job).filter_by(source=connector.name, external_id=d.external_id).first()
             if existing:
                 jobs.append(existing)

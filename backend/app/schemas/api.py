@@ -26,6 +26,7 @@ class ResumeOut(ORM):
     tags: list[str]
     target_role: str | None
     extracted_chars: int
+    extracted_text: str = ""
     created_at: datetime
 
 
@@ -130,6 +131,14 @@ class ProfileBase(BaseModel):
     skills: list[str] = []
     experience: list[str] = []
     facts: dict[str, str] = {}
+    target_roles: list[str] = []
+    preferred_locations: list[str] = []
+    remote_preference: str = "all"
+    min_experience: int = 0
+    salary_preference: str = ""
+    excluded_roles: list[str] = []
+    excluded_companies: list[str] = []
+    preferred_job_sources: list[str] = ["mock"]
 
 
 class ProfileIn(ProfileBase):
@@ -144,3 +153,23 @@ class TestEmailOut(BaseModel):
     sent: bool
     mode: str
     detail: str
+
+
+# ---- automation run
+class AutomationRunRequest(BaseModel):
+    connector: str = ""  # empty = use preferred_job_sources from profile
+    query: str = ""
+    auto_apply: bool = True  # whether to automatically apply to eligible matches
+
+
+class AutomationRunResult(BaseModel):
+    discovered: int
+    matched: int
+    eligible: int
+    applied: int
+    requires_manual_action: int
+    blocked: int
+    failed: int
+    skipped: int
+    duplicate: int
+    details: list[dict] = []

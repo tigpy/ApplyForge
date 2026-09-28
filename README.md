@@ -44,23 +44,39 @@ resumes/  data/          your PDFs and the SQLite DB (git-ignored)
 scripts/                 make_sample_resumes.py
 ```
 
-## Setup
-```bash
-# backend (from repo root)
-cd backend
-python -m venv .venv
-source .venv/bin/activate          # Windows: .venv\Scripts\activate
-pip install -r requirements.txt
-cp .env.example .env               # optional; defaults work with no keys
-uvicorn app.main:app --reload      # http://127.0.0.1:8000  (docs at /docs)
+## Features & Workflow
+- **Multi-Resume Management**: Upload, preview extracted text, and manage multiple PDF resumes. Prevents duplicate uploads.
+- **Job Preferences**: Set target roles, preferred locations, workplace preference (remote/hybrid/onsite), minimum experience, and company/role exclusions.
+- **Connectors**:
+  - `mock`: Completely reliable offline mock discovery & application testing.
+  - `public_feed`: Discovers public tech jobs with built-in offline snapshot fallback.
+  - `playwright`: Real browser automation with form inspection, input filling, resume uploading, and confirmation verification.
+- **Deterministic Multi-Resume Matching**: Evaluates jobs against every uploaded resume and selects the highest scoring resume.
+- **One-Click Automation ("Run Job Search")**: Discovers jobs -> matches against all resumes -> ranks opportunities -> selects best resumes -> applies automatically -> saves audit record -> sends notifications.
+- **Safety Protections**: Never invents candidate facts; unknown mandatory fields transition to `REQUIRES_MANUAL_ACTION`; CAPTCHA blocks application cleanly; never applies twice.
 
-# frontend (second terminal)
+## Setup & Running
+
+### Backend
+```bash
+cd backend
+# Optional: create & activate virtualenv
+python -m venv .venv
+.venv\Scripts\activate            # Linux/macOS: source .venv/bin/activate
+pip install -r requirements.txt
+python -m playwright install chromium   # once for Playwright browser automation
+uvicorn app.main:app --reload           # runs on http://127.0.0.1:8000 (docs at /docs)
+```
+
+### Frontend
+```bash
 cd frontend
 npm install
-npm run dev                        # http://localhost:5173 (proxies /api to :8000)
+npm run dev                             # runs on http://localhost:5173 (proxies /api to :8000)
 ```
-Sample resumes for trying it out: `python scripts/make_sample_resumes.py` (writes to `data/sample-resumes/`).
-Then open **Settings**, fill in your profile, upload resumes, click **Discover jobs**, open a job, **Run match**, **Apply now**.
+
+Sample resumes for trying it out: `python scripts/make_sample_resumes.py` (generates sample resumes in `resumes/` and `data/sample-resumes/`).
+Open the Dashboard at `http://localhost:5173` and click **Run Job Search**!
 
 ## Environment variables (`backend/.env`)
 | Variable | Purpose | Default |

@@ -75,6 +75,12 @@ class ResumeService:
         if not text:
             stored.unlink(missing_ok=True)
             raise ServiceError(422, "PDF has no extractable text (scanned PDFs are not supported)")
+
+        existing = self.db.query(Resume).filter((Resume.extracted_text == text) | ((Resume.filename == safe) & (Resume.extracted_text == text))).first()
+        if existing:
+            stored.unlink(missing_ok=True)
+            raise ServiceError(409, f"A resume with identical content already exists ('{existing.display_name or existing.filename}')")
+
         return self.repo.add(Resume(
             filename=safe, display_name=display_name.strip() or safe, path=str(stored), extracted_text=text,
             tags=[t.strip() for t in tags.split(",") if t.strip()], target_role=target_role.strip() or None,

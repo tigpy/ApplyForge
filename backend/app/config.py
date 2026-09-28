@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     match_threshold: int = 75
     max_upload_mb: int = 5
     cors_origins: str = "http://localhost:5173"
+    allow_local_urls: bool = False
 
     @property
     def sqlalchemy_url(self) -> str:

@@ -23,9 +23,10 @@ ALLOWED: dict[S, set[S]] = {
     S.MATCHED: {S.ELIGIBLE, S.SKIPPED, S.DUPLICATE},
     S.ELIGIBLE: {S.QUEUED, S.SKIPPED, S.DUPLICATE, S.MATCHED},  # MATCHED = re-match
     S.QUEUED: {S.APPLYING, S.SKIPPED},
-    S.APPLYING: {S.APPLIED, S.FAILED, S.BLOCKED},
+    S.APPLYING: {S.APPLIED, S.FAILED, S.BLOCKED, S.REQUIRES_MANUAL_ACTION},
     S.FAILED: {S.QUEUED, S.DUPLICATE},  # retry
     S.BLOCKED: {S.QUEUED, S.DUPLICATE},  # retry after the user fixes the cause
+    S.REQUIRES_MANUAL_ACTION: {S.QUEUED, S.DUPLICATE},  # retry after answering required facts
     S.SKIPPED: {S.MATCHED},  # re-match after uploading a better resume
     S.APPLIED: set(),
     S.DUPLICATE: set(),
@@ -165,7 +166,7 @@ def _execute(db, app, conn: ApplicationConnector, profile, ai) -> Outcome:
     log_event(db, app, "FIELDS_EXTRACTED", f"{len(fields)} fields")
     plan = plan_fill(fields, profile, ai)
     if plan.unknown:
-        return Outcome(S.BLOCKED, "Manual input needed for mandatory field(s): " + ", ".join(plan.unknown))
+        return Outcome(S.REQUIRES_MANUAL_ACTION, "Manual input needed for mandatory field(s): " + ", ".join(plan.unknown))
     log_event(db, app, "RESUME_SELECTED", resume.filename)
     if plan.file_field:
         conn.upload_resume(plan.file_field, Path(resume.path))
@@ -188,7 +189,7 @@ def apply_application(
     app = db.get(Application, application_id)
     if app is None:
         raise ServiceError(404, "Application not found")
-    if S(app.status) not in (S.ELIGIBLE, S.FAILED, S.BLOCKED):
+    if S(app.status) not in (S.ELIGIBLE, S.FAILED, S.BLOCKED, S.REQUIRES_MANUAL_ACTION):
         raise ServiceError(409, f"Cannot apply from status {app.status}")
     if _is_duplicate(db, app):
         transition(db, app, S.DUPLICATE, "same job already applied")
@@ -223,8 +224,7 @@ def apply_application(
         app.submitted_at, app.confirmation_text = utcnow(), outcome.confirmation
     transition(db, app, outcome.status, outcome.reason or outcome.confirmation or "")
     db.commit()
-    if outcome.status == S.APPLIED:
-        _notify(db, app, notifier or get_notification_service())
+    _notify(db, app, notifier or get_notification_service())
     return app
 
 

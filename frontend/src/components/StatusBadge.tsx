@@ -11,6 +11,7 @@ const COLORS: Record<Status, string> = {
   DISCOVERED: "bg-slate-100 text-slate-700",
   SKIPPED: "bg-slate-200 text-slate-600",
   DUPLICATE: "bg-yellow-100 text-yellow-800",
+  REQUIRES_MANUAL_ACTION: "bg-purple-100 text-purple-800",
 };
 
 export function StatusBadge({ status, testId }: { status: Status; testId?: string }) {

@@ -28,6 +28,14 @@ class CandidateProfile(Base):
     skills: Mapped[list] = mapped_column(JSON, default=list)
     experience: Mapped[list] = mapped_column(JSON, default=list)
     facts: Mapped[dict] = mapped_column(JSON, default=dict)  # extra verified answers, e.g. work_authorization
+    target_roles: Mapped[list] = mapped_column(JSON, default=list)
+    preferred_locations: Mapped[list] = mapped_column(JSON, default=list)
+    remote_preference: Mapped[str] = mapped_column(String, default="all")  # all | remote | hybrid | onsite
+    min_experience: Mapped[int] = mapped_column(Integer, default=0)
+    salary_preference: Mapped[str] = mapped_column(String, default="")
+    excluded_roles: Mapped[list] = mapped_column(JSON, default=list)
+    excluded_companies: Mapped[list] = mapped_column(JSON, default=list)
+    preferred_job_sources: Mapped[list] = mapped_column(JSON, default=lambda: ["mock"])
 
 
 class Resume(Base):

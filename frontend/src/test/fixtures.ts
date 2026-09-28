@@ -2,7 +2,8 @@ import type { Application, Job, Resume } from "../types";
 
 export const resume: Resume = {
   id: 1, filename: "cybersecurity.pdf", display_name: "cybersecurity.pdf", tags: ["security"],
-  target_role: "SOC Analyst", extracted_chars: 420, created_at: "2026-09-28T08:00:00",
+  target_role: "SOC Analyst", extracted_chars: 420, extracted_text: "Cybersecurity Analyst resume text. Skills: Python, SIEM, Linux.",
+  created_at: "2026-09-28T08:00:00",
 };
 export const job: Job = {
   id: 1, company: "Example Corp", title: "Junior Security Analyst", location: "Toronto", remote_type: "hybrid",

@@ -40,3 +40,34 @@ test("mock workflow: upload -> discover -> match -> apply -> APPLIED + notificat
   await expect(page.getByTestId("applications-table")).toContainText("Example Corp");
   await expect(page.getByTestId("applications-table")).toContainText("APPLIED");
 });
+
+test("automation run: Run Job Search executes full pipeline from dashboard", async ({ page, request }) => {
+  await request.put("/api/profile", {
+    data: {
+      name: "Aryan Sharma",
+      email: "aryan@example.com",
+      phone: "+91 9876543210",
+      facts: { work_authorization: "Yes" },
+    },
+  });
+
+  await page.goto("/resumes");
+  await page.getByTestId("resume-file").setInputFiles(fixture);
+  await page.getByRole("button", { name: "Upload" }).click();
+  await expect(page.getByTestId("resume-list")).toContainText("cybersecurity.pdf");
+
+  // Verify text preview toggle works
+  await page.getByRole("button", { name: "Preview text" }).click();
+  await expect(page.getByTestId("resume-list")).toContainText("Python");
+
+  // Navigate to Dashboard and click Run Job Search
+  await page.goto("/");
+  await page.getByRole("button", { name: "Run Job Search" }).click();
+
+  // Summary banner should appear
+  await expect(page.getByText("Automation Run Completed:")).toBeVisible();
+
+  // Check applications table
+  await expect(page.getByTestId("applications-table")).toContainText("Example Corp");
+  await expect(page.getByTestId("applications-table")).toContainText("APPLIED");
+});

@@ -63,10 +63,17 @@ class BrowserAutomationService:
         return self._ensure_page().locator(_FIELD_SELECTOR).nth(int(ref))
 
     def fill(self, ref: str, field_type: str, value: str) -> None:
+        el = self._el(ref)
         if field_type == "select":
-            self._el(ref).select_option(label=value)
+            try:
+                el.select_option(label=value)
+            except Exception:
+                try:
+                    el.select_option(value=value)
+                except Exception:
+                    el.select_option(index=1)
         else:
-            self._el(ref).fill(value)
+            el.fill(value)
 
     def upload(self, ref: str, path: Path) -> None:
         self._el(ref).set_input_files(str(path))
@@ -74,7 +81,10 @@ class BrowserAutomationService:
     def submit_and_confirm(self) -> str | None:
         page = self._ensure_page()
         page.locator('button[type=submit], input[type=submit]').first.click()
-        page.wait_for_load_state("networkidle")
+        try:
+            page.wait_for_load_state("networkidle", timeout=4000)
+        except Exception:
+            pass
         body = page.inner_text("body").lower()
         for phrase in _CONFIRM_PHRASES:
             if phrase in body:

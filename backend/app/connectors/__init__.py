@@ -2,8 +2,12 @@
 from app.config import settings
 from app.connectors.base import ApplicationConnector, JobConnector
 from app.connectors.mock import MockApplicationConnector, MockJobConnector
+from app.connectors.public_feed import PublicFeedJobConnector
 
-JOB_CONNECTORS: dict[str, type[JobConnector]] = {"mock": MockJobConnector}
+JOB_CONNECTORS: dict[str, type[JobConnector]] = {
+    "mock": MockJobConnector,
+    "public_feed": PublicFeedJobConnector,
+}
 
 
 def get_job_connector(name: str) -> JobConnector:

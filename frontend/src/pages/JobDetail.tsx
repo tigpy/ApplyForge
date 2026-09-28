@@ -5,7 +5,7 @@ import { StatusBadge } from "../components/StatusBadge";
 import { useAsync } from "../hooks/useAsync";
 import { api } from "../services/api";
 
-const APPLYABLE = ["ELIGIBLE", "FAILED", "BLOCKED"];
+const APPLYABLE = ["ELIGIBLE", "FAILED", "BLOCKED", "REQUIRES_MANUAL_ACTION"];
 
 export default function JobDetail() {
   const id = Number(useParams().id);

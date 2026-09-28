@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from app.config import settings
 from app.database import init_db
 from app.errors import ServiceError
-from app.routers import applications, health, jobs, profile, resumes
+from app.routers import applications, automation, health, jobs, profile, resumes
 from app.routers import settings as settings_router
 
 
@@ -29,5 +29,5 @@ async def service_error_handler(_req: Request, exc: ServiceError):
     return JSONResponse(status_code=exc.status_code, content={"detail": exc.detail})
 
 
-for r in (health.router, resumes.router, jobs.router, applications.router, profile.router, settings_router.router):
+for r in (health.router, resumes.router, jobs.router, applications.router, profile.router, settings_router.router, automation.router):
     app.include_router(r, prefix="/api")

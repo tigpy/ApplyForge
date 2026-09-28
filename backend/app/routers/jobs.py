@@ -6,7 +6,15 @@ from app.database import get_db
 from app.errors import ServiceError
 from app.models import Job
 from app.presenters import job_detail_out, job_out, match_out
-from app.schemas import DiscoverRequest, DiscoverResponse, JobDetailOut, JobOut, MatchResultOut
+from app.schemas import (
+    AutomationRunRequest,
+    AutomationRunResult,
+    DiscoverRequest,
+    DiscoverResponse,
+    JobDetailOut,
+    JobOut,
+    MatchResultOut,
+)
 from app.services.job_service import JobService
 from app.services.matching_service import run_match
 
@@ -40,3 +48,17 @@ def get_job(job_id: int, db: Session = Depends(get_db)):
 @router.post("/{job_id}/match", response_model=MatchResultOut)
 def match_job(job_id: int, db: Session = Depends(get_db)):
     return match_out(db, run_match(db, _get_job(db, job_id)))
+
+
+@router.post("/run-search", response_model=AutomationRunResult)
+def run_job_search(body: AutomationRunRequest | None = None, db: Session = Depends(get_db)):
+    from app.services.automation_service import AutomationService
+
+    body = body or AutomationRunRequest()
+    try:
+        service = AutomationService(db)
+        return service.run_job_search(
+            connector_name=body.connector, query=body.query, auto_apply=body.auto_apply
+        )
+    except ValueError as exc:
+        raise ServiceError(400, str(exc)) from exc

@@ -13,24 +13,30 @@ def sanitize_filename(name: str) -> str:
     return base[:100] or "resume.pdf"
 
 
-def validate_external_url(url: str) -> str:
-    """Allow only public http(s) URLs. Raises ValueError otherwise.
+def validate_external_url(url: str, allow_local: bool | None = None) -> str:
+    """Allow only http(s) URLs. Raises ValueError otherwise.
 
-    Note: resolution is checked once; DNS rebinding is out of scope for this skeleton.
+    Rejects localhost / private IPs unless allow_local is True or settings.allow_local_urls is True.
     """
+    from app.config import settings
+
+    if allow_local is None:
+        allow_local = settings.allow_local_urls
+
     p = urlparse(url)
     if p.scheme not in ("http", "https") or not p.hostname:
         raise ValueError("Only http(s) URLs with a hostname are allowed")
     if p.username or p.password:
         raise ValueError("Credentials in URLs are not allowed")
     host = p.hostname.lower()
-    if host == "localhost" or host.endswith(".localhost"):
-        raise ValueError("Localhost URLs are not allowed")
-    try:
-        infos = socket.getaddrinfo(host, p.port or (443 if p.scheme == "https" else 80), proto=socket.IPPROTO_TCP)
-    except socket.gaierror as exc:
-        raise ValueError("Host could not be resolved") from exc
-    for info in infos:
-        if not ipaddress.ip_address(info[4][0].split("%")[0]).is_global:
-            raise ValueError("URL resolves to a private or reserved address")
+    if not allow_local:
+        if host == "localhost" or host.endswith(".localhost"):
+            raise ValueError("Localhost URLs are not allowed")
+        try:
+            infos = socket.getaddrinfo(host, p.port or (443 if p.scheme == "https" else 80), proto=socket.IPPROTO_TCP)
+        except socket.gaierror as exc:
+            raise ValueError("Host could not be resolved") from exc
+        for info in infos:
+            if not ipaddress.ip_address(info[4][0].split("%")[0]).is_global:
+                raise ValueError("URL resolves to a private or reserved address")
     return url

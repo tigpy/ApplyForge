@@ -56,15 +56,33 @@ def get_notification_service() -> NotificationService:
 
 def build_application_notification(app) -> Notification:
     """`app` is an Application ORM object with job and resume loaded."""
-    when = (app.submitted_at or app.updated_at).strftime("%d %b %Y")
-    body = (
-        "Applied Successfully\n\n"
-        f"Company: {app.job.company}\n"
-        f"Role: {app.job.title}\n"
-        f"Resume used: {app.resume.filename if app.resume else 'unknown'}\n"
-        f"Match: {app.match_score}%\n"
-        f"Application URL: {app.application_url}\n"
-        f"Status: Applied\n"
-        f"Date: {when}"
-    )
-    return Notification(subject=f"Applied: {app.job.title} at {app.job.company}", body=body)
+    when = (app.submitted_at or app.updated_at).strftime("%d %b %Y %H:%M")
+    resume_name = app.resume.filename if app.resume else "None"
+    status_str = str(app.status)
+    if status_str == "APPLIED":
+        subject = f"Applied: {app.job.title} at {app.job.company}"
+        body = (
+            "Applied Successfully\n"
+            "Application submitted successfully.\n\n"
+            f"Company: {app.job.company}\n"
+            f"Role: {app.job.title}\n"
+            f"Resume used: {resume_name}\n"
+            f"Match: {app.match_score}%\n"
+            f"Status: Applied\n"
+            f"Date: {when}\n"
+            f"URL: {app.application_url}"
+        )
+    else:
+        subject = f"Application {status_str}: {app.job.title} at {app.job.company}"
+        reason = app.failure_reason or "Requirements could not be satisfied"
+        body = (
+            "Application could not be completed.\n\n"
+            f"Company: {app.job.company}\n"
+            f"Role: {app.job.title}\n"
+            f"Resume used: {resume_name}\n"
+            f"Match: {app.match_score}%\n"
+            f"Status: {status_str}\n"
+            f"Reason: {reason}\n"
+            f"URL: {app.application_url}"
+        )
+    return Notification(subject=subject, body=body)

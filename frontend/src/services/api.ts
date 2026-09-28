@@ -1,4 +1,4 @@
-import type { Application, ApplicationDetail, Job, JobDetail, MatchResult, Profile, Resume } from "../types";
+import type { Application, ApplicationDetail, AutomationRunResult, Job, JobDetail, MatchResult, Profile, Resume } from "../types";
 
 const BASE = "/api";
 
@@ -45,4 +45,7 @@ export const api = {
   getProfile: () => request<Profile>("/profile"),
   saveProfile: (p: Profile) => request<Profile>("/profile", json("PUT", p)),
   testEmail: () => request<{ sent: boolean; mode: string; detail: string }>("/settings/test-email", json("POST")),
+
+  runAutomation: (opts?: { connector?: string; query?: string; auto_apply?: boolean }) =>
+    request<AutomationRunResult>("/automation/run", json("POST", opts ?? {})),
 };
