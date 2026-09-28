@@ -1,17 +1,30 @@
-# secrets
+# secrets & environment
 .env
+.env.*
 *.env
 !.env.example
 
 # python
 .venv/
+venv/
+env/
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
 .pytest_cache/
+.coverage
+htmlcov/
 
-# node
+# databases
+*.db
+*.sqlite
+*.sqlite3
+
+# node & build
 node_modules/
 dist/
+build/
+.vite/
 playwright-report/
 test-results/
 
@@ -20,3 +33,13 @@ data/*
 !data/.gitkeep
 resumes/*
 !resumes/.gitkeep
+
+# IDEs & editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
