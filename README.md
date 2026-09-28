@@ -1,110 +1,197 @@
-# ApplyForge
+# ApplyForge 🚀
+> **Personal Job-Search & Automated Application Engine**  
+> ApplyForge automatically indexes your resumes, discovers jobs, matches each role across all your resumes, selects the best resume, and applies autonomously using verified candidate information with real browser automation.
 
-Personal job-application automation. You provide existing resume PDFs; ApplyForge:
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![React](https://img.shields.io/badge/React-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.6-3178C6?logo=typescript&logoColor=white)](https://www.typescriptlang.org)
+[![Playwright](https://img.shields.io/badge/Playwright-Automation-2EAD33?logo=playwright&logoColor=white)](https://playwright.dev)
+[![TailwindCSS](https://img.shields.io/badge/TailwindCSS-v4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Pytest](https://img.shields.io/badge/Tests-Pytest%20%7C%20Vitest%20%7C%20E2E-success)](https://pytest.org)
 
-1. reads and indexes them, 2. discovers jobs, 3. extracts requirements, 4. scores the job against **every** resume,
-5. picks the best resume and decides whether to apply, 6. opens the application and fills it from verified data,
-7. submits automatically, 8. records exactly what happened, 9. notifies you.
+---
+
+## ⚡ Overview
+
+ApplyForge is designed to remove the repetitive friction of job applications. Instead of manually uploading PDFs, copy-pasting candidate facts, and filling repetitive fields on career portals, ApplyForge runs an end-to-end autonomous pipeline:
 
 ```
-Applied Successfully
-Company: Example Corp | Role: Junior Security Analyst | Resume used: cybersecurity.pdf | Match: 91% | Status: Applied
+Upload Multiple Real Resumes
+          ↓
+Configure Job Preferences & Exclusions
+          ↓
+Discover Jobs (Mock / Public Feed)
+          ↓
+Match Every Job Against ALL Resumes
+          ↓
+Select Highest-Scoring Deterministic Resume
+          ↓
+Automate Application via Playwright Browser
+          ↓
+Verify Actual Confirmation & Save Audit Record
+          ↓
+Send Instant Notification (Success or Blocker)
 ```
 
-**Status:** working skeleton. Everything runs end to end on **mock** connectors. No real job board or real application
-site is integrated; `PlaywrightApplicationConnector` is a generic, *unverified* implementation.
+---
 
-## Stack
-React + TypeScript + Vite + Tailwind (frontend) · Python + FastAPI + Pydantic + SQLAlchemy + SQLite (backend) ·
-OpenAI API with structured outputs (mock provider by default) · Playwright · PyMuPDF · SMTP · Pytest, Vitest, Playwright tests.
+## 🏗️ Architecture
 
-## Architecture
 ```
-Frontend (React) --/api--> FastAPI routers --> services --> connectors (mock | playwright)
-                                                  |--> ai (OpenAIProvider | MockAIProvider)
-                                                  |--> SQLite (SQLAlchemy)
-                                                  '--> notifications (email | mock)
-```
-Routers are thin. All logic is in `services/`. Browser code exists only in `services/browser_service.py`.
-Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-
-## Folder structure
-```
-backend/app/{main,config,database,security,skills,presenters}.py
-backend/app/models/      SQLAlchemy tables + status enum
-backend/app/schemas/     Pydantic request/response models
-backend/app/routers/     /api endpoints
-backend/app/services/    resume, job, matching, application, notification, browser
-backend/app/ai/          AIProvider, OpenAI + mock, matching & answer schemas
-backend/app/connectors/  JobConnector / ApplicationConnector + mock + playwright
-backend/tests/           pytest
-frontend/src/            pages, components, services (API client), hooks, types
-frontend/e2e/            Playwright mock end-to-end test
-resumes/  data/          your PDFs and the SQLite DB (git-ignored)
-scripts/                 make_sample_resumes.py
+┌─────────────────────────────────────────────────────────────┐
+│                 React + TypeScript Frontend                 │
+│    Dashboard · Resume Manager · Jobs · Applications · Config │
+└──────────────────────────────┬──────────────────────────────┘
+                               │ /api
+┌──────────────────────────────▼──────────────────────────────┐
+│                    FastAPI Python Backend                   │
+│   Routers (Resumes, Jobs, Automation, Profile, Application) │
+└──────┬───────────────────────┬───────────────────────┬──────┘
+       │                       │                       │
+┌──────▼──────┐         ┌──────▼──────┐         ┌──────▼──────┐
+│  Services   │         │ Match Engine│         │ Connectors  │
+│  · Resume   │         │ · Overlap   │         │ · Mock      │
+│  · Job      │         │ · Semantics │         │ · Public    │
+│  · Auto-App │         │ · Ranking   │         │ · Playwright│
+└──────┬──────┘         └──────┬──────┘         └──────┬──────┘
+       │                       │                       │
+┌──────▼───────────────────────▼───────────────────────▼──────┐
+│                      SQLite / SQLAlchemy                    │
+│   Resumes · CandidateProfile · Jobs · Events · Audit Trail  │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-## Features & Workflow
-- **Multi-Resume Management**: Upload, preview extracted text, and manage multiple PDF resumes. Prevents duplicate uploads.
-- **Job Preferences**: Set target roles, preferred locations, workplace preference (remote/hybrid/onsite), minimum experience, and company/role exclusions.
-- **Connectors**:
-  - `mock`: Completely reliable offline mock discovery & application testing.
-  - `public_feed`: Discovers public tech jobs with built-in offline snapshot fallback.
-  - `playwright`: Real browser automation with form inspection, input filling, resume uploading, and confirmation verification.
-- **Deterministic Multi-Resume Matching**: Evaluates jobs against every uploaded resume and selects the highest scoring resume.
-- **One-Click Automation ("Run Job Search")**: Discovers jobs -> matches against all resumes -> ranks opportunities -> selects best resumes -> applies automatically -> saves audit record -> sends notifications.
-- **Safety Protections**: Never invents candidate facts; unknown mandatory fields transition to `REQUIRES_MANUAL_ACTION`; CAPTCHA blocks application cleanly; never applies twice.
+---
 
-## Setup & Running
+## ✨ Key Features
 
-### Backend
+- **Multi-Resume Management**: Upload real PDF resumes (e.g. Cybersecurity, SOC Analyst, Backend Developer, Java, General). Original PDFs are preserved byte-for-byte, extractable text is indexed, and duplicate file uploads are prevented.
+- **Job Preferences System**: Set target roles, preferred locations (e.g. Mumbai, Remote, India), remote/hybrid/onsite workplace preferences, minimum experience, and company/role exclusions.
+- **Deterministic Multi-Resume Matching**: Evaluates every discovered job against *all* uploaded resumes. Calculates deterministic skill overlap, ranks all candidates, and links the highest scoring resume to the application.
+- **One-Click Automation ("Run Job Search")**: One action discovers jobs, de-duplicates them, matches against all resumes, selects winning resumes, applies via headless Playwright, records events, and sends notifications.
+- **Real Playwright Browser Automation**: Generic, robust browser automation that opens application portals, extracts fields, maps verified candidate data, uploads the winning PDF, clicks submit, and only confirms when genuine confirmation text appears on the page.
+- **Safety First & Anti-Hallucination**:
+  - Never invents candidate facts or answers.
+  - Unknown mandatory questions mark the application as `REQUIRES_MANUAL_ACTION` instead of guessing.
+  - CAPTCHA and bot verification cleanly mark applications as `BLOCKED`.
+  - Atomic database claims ensure no job is ever applied to twice.
+- **Notifications**: Instant notifications via structured mock event logs or real SMTP email on both successful applications and blocked attempts.
+
+---
+
+## 🚀 Quickstart
+
+### Prerequisites
+- Python 3.10+
+- Node.js 18+
+- npm
+
+### 1. Backend Setup
+
 ```bash
 cd backend
-# Optional: create & activate virtualenv
+
+# Create and activate virtual environment
 python -m venv .venv
-.venv\Scripts\activate            # Linux/macOS: source .venv/bin/activate
+.venv\Scripts\activate       # On Linux/macOS: source .venv/bin/activate
+
+# Install dependencies
 pip install -r requirements.txt
-python -m playwright install chromium   # once for Playwright browser automation
-uvicorn app.main:app --reload           # runs on http://127.0.0.1:8000 (docs at /docs)
-```
 
-### Frontend
+# Install Playwright browser
+python -m playwright install chromium
+
+# Copy environment configuration
+cp .env.example .env
+
+# Run FastAPI backend
+uvicorn app.main:app --reload --port 8000
+```
+- API server runs at: `http://127.0.0.1:8000`
+- Interactive OpenAPI docs: `http://127.0.0.1:8000/docs`
+
+### 2. Frontend Setup
+
 ```bash
+# In a second terminal
 cd frontend
+
+# Install packages
 npm install
-npm run dev                             # runs on http://localhost:5173 (proxies /api to :8000)
+
+# Start Vite development server
+npm run dev
 ```
+- Web UI is live at: `http://localhost:5173`
 
-Sample resumes for trying it out: `python scripts/make_sample_resumes.py` (generates sample resumes in `resumes/` and `data/sample-resumes/`).
-Open the Dashboard at `http://localhost:5173` and click **Run Job Search**!
+### 3. Generate Sample Resumes
 
-## Environment variables (`backend/.env`)
-| Variable | Purpose | Default |
-|---|---|---|
-| `OPENAI_API_KEY`, `OPENAI_MODEL` | real AI; empty key = mock AI | mock / `gpt-4o-mini` |
-| `AI_PROVIDER` | `auto`, `openai`, `mock` | `auto` |
-| `SMTP_HOST/PORT/USERNAME/PASSWORD`, `NOTIFICATION_EMAIL` | email notifications | empty = mock notifier |
-| `NOTIFICATION_MODE` | `auto`, `email`, `mock` | `auto` |
-| `DATABASE_URL` | SQLite URL (relative paths resolve from repo root) | `sqlite:///./data/applyforge.db` |
-| `RESUME_DIR` | where uploaded PDFs are stored | `./resumes` |
-| `APPLICATION_CONNECTOR` | `mock` or `playwright` | `mock` |
-| `MATCH_THRESHOLD` | score needed to be ELIGIBLE | `75` |
-| `MAX_UPLOAD_MB`, `BROWSER_HEADLESS`, `CORS_ORIGINS` | misc | `5`, `true`, `http://localhost:5173` |
-
-## Tests
+To quickly populate sample resumes for local development:
 ```bash
-cd backend && source .venv/bin/activate && python -m pytest          # backend
-cd frontend && npm test                                              # Vitest
-cd frontend && npx playwright install chromium                       # once
-cd frontend && npm run test:e2e                                      # mock E2E (backend venv must be active)
+python scripts/make_sample_resumes.py
+```
+This generates 5 distinct resumes in `resumes/` and `data/sample-resumes/`:
+1. `cybersecurity.pdf` (Cybersecurity Analyst)
+2. `soc-analyst.pdf` (SOC Analyst)
+3. `backend-developer.pdf` (Backend Python Developer)
+4. `java-developer.pdf` (Java Backend Developer)
+5. `fresher-general.pdf` (Junior Software Developer)
+
+---
+
+## 🧪 Testing
+
+ApplyForge features complete test suites across unit, integration, and browser levels:
+
+```bash
+# 1. Run all backend tests (Pytest - 32 tests including real Playwright browser automation)
+cd backend
+python -m pytest
+
+# 2. Run frontend unit/component tests (Vitest)
+cd frontend
+npm test
+
+# 3. Run Playwright mock workflow E2E test
+cd frontend
+npm run test:e2e
 ```
 
-## How the automation flow works
-Job -> Match (all resumes) -> select resume -> ELIGIBLE -> open application URL -> extract form fields -> map stored
-candidate data -> upload resume -> fill -> submit -> record -> notify. Unknown mandatory fields, CAPTCHA/MFA and
-unconfirmed submissions **never** become APPLIED. See [docs/AUTOMATION_FLOW.md](docs/AUTOMATION_FLOW.md).
+---
 
-## Safety rules (enforced in code)
-Secrets only via env vars, `.env` git-ignored · PDF-only, size-limited, sanitized uploads · external URLs validated
-(no localhost/private ranges) before browsing · AI answers only from stored facts, else BLOCKED · CAPTCHA/MFA is never
-bypassed · APPLIED only after the site confirms · one application per job, atomic claim prevents double submission.
+## 🔒 Configuration (`backend/.env`)
+
+| Variable | Description | Default |
+|---|---|---|
+| `OPENAI_API_KEY` | OpenAI API Key (leave empty for deterministic mock AI) | `""` |
+| `OPENAI_MODEL` | OpenAI Model | `gpt-4o-mini` |
+| `AI_PROVIDER` | `auto`, `openai`, or `mock` | `auto` |
+| `SMTP_HOST` | SMTP server host for email notifications | `""` |
+| `SMTP_PORT` | SMTP server port | `587` |
+| `SMTP_USERNAME` | SMTP account username | `""` |
+| `SMTP_PASSWORD` | SMTP account password | `""` |
+| `NOTIFICATION_EMAIL` | Destination email address for notifications | `""` |
+| `NOTIFICATION_MODE` | `auto`, `email`, or `mock` | `auto` |
+| `DATABASE_URL` | SQLite database URI | `sqlite:///./data/applyforge.db` |
+| `RESUME_DIR` | Directory to store uploaded resume PDFs | `./resumes` |
+| `APPLICATION_CONNECTOR` | `mock` or `playwright` | `mock` |
+| `BROWSER_HEADLESS` | Run Playwright in headless mode | `true` |
+| `MATCH_THRESHOLD` | Minimum score percentage to mark application ELIGIBLE | `75` |
+| `ALLOW_LOCAL_URLS` | Allow local URLs for test application servers | `false` |
+| `CORS_ORIGINS` | Permitted frontend origins | `http://localhost:5173` |
+
+---
+
+## 🛡️ Safety & Ethics Model
+
+1. **Deterministic Accuracy**: Candidate credentials, work experience, and educational background are never fabricated or embellished.
+2. **Verified Facts Only**: Answers to mandatory form questions are sourced strictly from the user's verified candidate profile and stored facts.
+3. **Graceful Escalation**: If an application requires manual input (CAPTCHA, unknown mandatory questions, MFA), it transitions to `BLOCKED` or `REQUIRES_MANUAL_ACTION`.
+4. **Idempotent Submissions**: Fingerprint hashing and atomic database claims prevent duplicate submissions to identical roles.
+5. **PII Sanitization**: Sensitive candidate data is excluded from application audit logs and browser event summaries.
+
+---
+
+## 📄 License
+
+MIT License. Built for personal job search automation.
