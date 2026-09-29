@@ -86,28 +86,46 @@ class GeminiProvider(AIProvider):
 
     name = "gemini"
 
-    def __init__(self, api_key: str, model: str = "gemini-3.8-flash"):
+    def __init__(self, api_key: str, model: str = "gemini-3.5-flash-lite"):
         from openai import OpenAI
 
         self._client = OpenAI(
             api_key=api_key,
             base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         )
-        self._model = model or "gemini-3.8-flash"
+        self._model = model or "gemini-3.5-flash-lite"
         self._mock = MockAIProvider()
+        self._cache: dict[tuple[str, str, str], object] = {}
 
     def _parse(self, system: str, user: str, schema):
-        try:
-            completion = self._client.beta.chat.completions.parse(
-                model=self._model,
-                messages=[{"role": "system", "content": system}, {"role": "user", "content": user[:_MAX_CHARS]}],
-                response_format=schema,
-            )
-            parsed = completion.choices[0].message.parsed
-            if parsed is not None:
-                return parsed
-        except Exception as exc:
-            log.warning("Gemini API call failed (%s); falling back to deterministic extraction", exc)
+        cache_key = (system, user[:_MAX_CHARS], schema.__name__)
+        if cache_key in self._cache:
+            return self._cache[cache_key]
+
+        models_to_try = [self._model]
+        for alt in ("gemini-3.5-flash-lite", "gemini-3.1-flash-lite"):
+            if alt not in models_to_try:
+                models_to_try.append(alt)
+
+        for candidate_model in models_to_try:
+            try:
+                completion = self._client.beta.chat.completions.parse(
+                    model=candidate_model,
+                    messages=[{"role": "system", "content": system}, {"role": "user", "content": user[:_MAX_CHARS]}],
+                    response_format=schema,
+                )
+                parsed = completion.choices[0].message.parsed
+                if parsed is not None:
+                    if candidate_model != self._model:
+                        log.info("Gemini switched active model from %s to working model %s", self._model, candidate_model)
+                        self._model = candidate_model
+                    if len(self._cache) > 1000:
+                        self._cache.clear()
+                    self._cache[cache_key] = parsed
+                    return parsed
+            except Exception as exc:
+                log.warning("Gemini model %s failed (%s); trying fallback", candidate_model, exc)
+
         return None
 
     def extract_requirements(self, description: str) -> RequirementExtraction:
