@@ -42,3 +42,10 @@ def init_db() -> None:
     from app import models  # noqa: F401  (register tables)
 
     Base.metadata.create_all(engine)
+
+    try:
+        with engine.begin() as conn:
+            conn.exec_driver_sql("UPDATE jobs SET status = 'APPLIED' WHERE status = 'SUBMITTED'")
+            conn.exec_driver_sql("UPDATE applications SET status = 'APPLIED' WHERE status = 'SUBMITTED'")
+    except Exception:
+        pass

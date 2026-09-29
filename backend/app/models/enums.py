@@ -16,6 +16,12 @@ class ApplicationStatus(str, Enum):
     BLOCKED = "BLOCKED"
     REQUIRES_MANUAL_ACTION = "REQUIRES_MANUAL_ACTION"
 
+    @classmethod
+    def _missing_(cls, value: object):
+        if isinstance(value, str) and value.upper() == "SUBMITTED":
+            return cls.APPLIED
+        return None
+
 
 class Recommendation(str, Enum):
     APPLY = "APPLY"

@@ -47,6 +47,7 @@ class Resume(Base):
     extracted_text: Mapped[str] = mapped_column(Text, default="")
     tags: Mapped[list] = mapped_column(JSON, default=list)
     target_role: Mapped[str | None] = mapped_column(String, nullable=True)
+    parsed_data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     @property
@@ -63,12 +64,15 @@ class Job(Base):
     location: Mapped[str] = mapped_column(String, default="")
     remote_type: Mapped[str] = mapped_column(String, default="unknown")  # remote | hybrid | onsite | unknown
     url: Mapped[str] = mapped_column(String, default="")
+    job_url: Mapped[str] = mapped_column(String, default="")
     application_url: Mapped[str] = mapped_column(String, default="")
     description: Mapped[str] = mapped_column(Text, default="")
     requirements: Mapped[list] = mapped_column(JSON, default=list)
     source: Mapped[str] = mapped_column(String)
     external_id: Mapped[str] = mapped_column(String)
     fingerprint: Mapped[str] = mapped_column(String, index=True)
+    parsed_data: Mapped[dict] = mapped_column(JSON, default=dict)
+    selected_resume_id: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     discovered_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     status: Mapped[str] = mapped_column(String, default=ApplicationStatus.DISCOVERED.value)
 
@@ -98,6 +102,7 @@ class Application(Base):
     submitted_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
     failure_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     confirmation_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    prepared_data: Mapped[dict] = mapped_column(JSON, default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 

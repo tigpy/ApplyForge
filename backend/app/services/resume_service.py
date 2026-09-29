@@ -84,6 +84,7 @@ class ResumeService:
         return self.repo.add(Resume(
             filename=safe, display_name=display_name.strip() or safe, path=str(stored), extracted_text=text,
             tags=[t.strip() for t in tags.split(",") if t.strip()], target_role=target_role.strip() or None,
+            parsed_data={},
         ))
 
     def delete(self, resume_id: int) -> None:
