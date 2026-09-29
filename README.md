@@ -69,11 +69,13 @@ Send Instant Notification (Success or Blocker)
 - **Job Preferences System**: Set target roles, preferred locations (e.g. Mumbai, Remote, India), remote/hybrid/onsite workplace preferences, minimum experience, and company/role exclusions.
 - **Deterministic Multi-Resume Matching**: Evaluates every discovered job against *all* uploaded resumes. Calculates deterministic skill overlap, ranks all candidates, and links the highest scoring resume to the application.
 - **One-Click Automation ("Run Job Search")**: One action discovers jobs, de-duplicates them, matches against all resumes, selects winning resumes, applies via headless Playwright, records events, and sends notifications.
-- **Real Playwright Browser Automation**: Generic, robust browser automation that opens application portals, extracts fields, maps verified candidate data, uploads the winning PDF, clicks submit, and only confirms when genuine confirmation text appears on the page.
+- **Real Playwright Browser Automation & ATS Adapters**: Dedicated ATS adapters for **Greenhouse** (`boards.greenhouse.io`) and **Lever** (`jobs.lever.co`) with generic fallback. Features smart field extraction, resume attachment, custom question answers from candidate profile, and strict site confirmation verification.
+- **Application URL Sanity Checking**: Automatically verifies that destination URLs represent interactive application forms. Generic job listing pages with un-followed links fail fast as `BLOCKED` rather than submitting unpredictably.
+- **Safe-Run Throttling & Rate-Limiting**: Configurable `MAX_APPLICATIONS_PER_RUN` (default: 10) prevents unbounded application floods. The public job feed connector incorporates a 30-second TTL cache and 429 backoff handling.
 - **Safety First & Anti-Hallucination**:
   - Never invents candidate facts or answers.
   - Unknown mandatory questions mark the application as `REQUIRES_MANUAL_ACTION` instead of guessing.
-  - CAPTCHA and bot verification cleanly mark applications as `BLOCKED`.
+  - CAPTCHA, Cloudflare challenges, and login gates cleanly mark applications as `BLOCKED`.
   - Atomic database claims ensure no job is ever applied to twice.
 - **Notifications**: Instant notifications via structured mock event logs or real SMTP email on both successful applications and blocked attempts.
 
@@ -144,11 +146,11 @@ This generates 5 distinct resumes in `resumes/` and `data/sample-resumes/`:
 ApplyForge features complete test suites across unit, integration, and browser levels:
 
 ```bash
-# 1. Run all backend tests (Pytest - 32 tests including real Playwright browser automation)
+# 1. Run all backend tests (Pytest - 57 tests including real Playwright browser automation & ATS adapters)
 cd backend
 python -m pytest
 
-# 2. Run frontend unit/component tests (Vitest)
+# 2. Run frontend unit/component tests (Vitest - 8 tests)
 cd frontend
 npm test
 
@@ -177,6 +179,7 @@ npm run test:e2e
 | `APPLICATION_CONNECTOR` | `mock` or `playwright` | `mock` |
 | `BROWSER_HEADLESS` | Run Playwright in headless mode | `true` |
 | `MATCH_THRESHOLD` | Minimum score percentage to mark application ELIGIBLE | `75` |
+| `MAX_APPLICATIONS_PER_RUN` | Max number of auto-applications per run batch | `10` |
 | `ALLOW_LOCAL_URLS` | Allow local URLs for test application servers | `false` |
 | `CORS_ORIGINS` | Permitted frontend origins | `http://localhost:5173` |
 

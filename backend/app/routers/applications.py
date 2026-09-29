@@ -34,6 +34,6 @@ def get_application_result(application_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{application_id}/apply", response_model=ApplicationDetailOut)
-def apply(application_id: int, db: Session = Depends(get_db)):
+def apply(application_id: int, dry_run: bool = False, db: Session = Depends(get_db)):
     """Runs synchronously in this skeleton. Move to BackgroundTasks + polling for slow real sites."""
-    return application_detail_out(apply_application(db, application_id))
+    return application_detail_out(apply_application(db, application_id, dry_run=dry_run))

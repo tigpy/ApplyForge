@@ -23,7 +23,7 @@ ALLOWED: dict[S, set[S]] = {
     S.MATCHED: {S.ELIGIBLE, S.SKIPPED, S.DUPLICATE},
     S.ELIGIBLE: {S.QUEUED, S.SKIPPED, S.DUPLICATE, S.MATCHED},  # MATCHED = re-match
     S.QUEUED: {S.APPLYING, S.SKIPPED},
-    S.APPLYING: {S.APPLIED, S.FAILED, S.BLOCKED, S.REQUIRES_MANUAL_ACTION},
+    S.APPLYING: {S.APPLIED, S.FAILED, S.BLOCKED, S.REQUIRES_MANUAL_ACTION, S.DUPLICATE},
     S.FAILED: {S.QUEUED, S.DUPLICATE},  # retry
     S.BLOCKED: {S.QUEUED, S.DUPLICATE},  # retry after the user fixes the cause
     S.REQUIRES_MANUAL_ACTION: {S.QUEUED, S.DUPLICATE},  # retry after answering required facts
@@ -87,10 +87,7 @@ def register_match(db: Session, job: Job, match: MatchResult) -> Application:
 
 
 # ---------------------------------------------------------------- form planning
-_LABEL_KEYS = [("linkedin", "linkedin"), ("github", "github"), ("portfolio", "portfolio"), ("website", "portfolio"),
-               ("email", "email"), ("phone", "phone"), ("mobile", "phone"), ("location", "location"),
-               ("city", "location"), ("name", "name")]
-_UNSUPPORTED_TYPES = {"checkbox", "radio"}
+_UNSUPPORTED_TYPES = set()  # Checkbox and radio are now supported
 
 
 def build_facts(profile: CandidateProfile) -> dict[str, str]:
@@ -101,16 +98,108 @@ def build_facts(profile: CandidateProfile) -> dict[str, str]:
     return {k: v for k, v in facts.items() if v}
 
 
-def _known_value(label: str, profile: CandidateProfile) -> str:
-    low = label.lower()
+def _match_option(options: list[str], target: str) -> str:
+    """Finds best matching option from dropdown or radio options."""
+    if not options or not target:
+        return target
+    target_low = target.lower().strip()
+    # 1. Exact match
+    for opt in options:
+        if opt.strip().lower() == target_low:
+            return opt
+    # 2. Binary Yes/No matching
+    if target_low in ("yes", "true", "1", "authorized"):
+        for opt in options:
+            if opt.strip().lower().startswith("yes") or "authorized" in opt.lower():
+                return opt
+    elif target_low in ("no", "false", "0"):
+        for opt in options:
+            if opt.strip().lower().startswith("no") or "will not" in opt.lower():
+                return opt
+    # 3. Substring matching
+    for opt in options:
+        if target_low in opt.lower() or opt.lower() in target_low:
+            return opt
+    return options[0] if options else target
+
+
+def _known_value(field_name: str, field_type: str, profile: CandidateProfile) -> str:
+    low = (field_name or "").lower().strip()
+    facts = profile.facts or {}
+
+    # 1. Names
     parts = (profile.name or "").split()
-    if "first name" in low:
+    if any(k in low for k in ("first name", "firstname", "fname", "first_name", "given name", "forename")):
         return parts[0] if parts else ""
-    if "last name" in low or "surname" in low:
+    if any(k in low for k in ("last name", "lastname", "lname", "last_name", "family name", "surname")):
         return parts[-1] if len(parts) > 1 else ""
-    for keyword, key in _LABEL_KEYS:
-        if keyword in low:
-            return getattr(profile, key) or ""
+    if any(k in low for k in ("full name", "your name", "candidate name", "legal name")) or low == "name" or low.endswith(" name"):
+        return profile.name or ""
+
+    # 2. Contact & Socials
+    if any(k in low for k in ("email", "e-mail", "mail")) or field_type == "email":
+        return profile.email or ""
+    if any(k in low for k in ("phone", "telephone", "mobile", "cell", "contact number")) or field_type == "tel":
+        return profile.phone or ""
+    if "linkedin" in low:
+        return profile.linkedin or ""
+    if "github" in low:
+        return profile.github or ""
+    if any(k in low for k in ("portfolio", "website", "personal site", "personal url", "homepage", "web site")):
+        return profile.portfolio or facts.get("portfolio", "")
+
+    # 3. Work authorization
+    if any(k in low for k in ("authorized to work", "work authorization", "legally authorized", "eligible to work", "right to work", "work permit", "authorized in", "authorized")):
+        for key in ("work_authorization", "authorized_to_work", "work_auth", "authorized"):
+            if key in facts:
+                return str(facts[key])
+        return ""
+
+    # 4. Sponsorship
+    if any(k in low for k in ("sponsorship", "visa sponsorship", "require visa", "require sponsorship", "future require")):
+        for key in ("sponsorship", "visa_sponsorship", "require_sponsorship"):
+            if key in facts:
+                return str(facts[key])
+        return "No" if facts.get("work_authorization") else ""
+
+    # 5. Location / City
+    if any(k in low for k in ("city", "town")):
+        if facts.get("city"):
+            return facts["city"]
+        return profile.location.split(",")[0].strip() if profile.location else ""
+    if any(k in low for k in ("location", "address", "residence", "country", "state", "postal", "zip")):
+        return facts.get("location") or profile.location or ""
+
+    # 6. Years of experience
+    if any(k in low for k in ("years of experience", "total experience", "how many years", "experience (years)", "years of professional")):
+        for key in ("years_of_experience", "experience_years", "experience"):
+            if key in facts:
+                return str(facts[key])
+        return str(profile.min_experience) if profile.min_experience > 0 else ""
+
+    # 7. Education / Degree
+    if any(k in low for k in ("highest degree", "degree level", "degree", "highest level of education", "qualification")):
+        for key in ("education", "degree", "highest_degree"):
+            if key in facts:
+                return str(facts[key])
+        return profile.education[0] if profile.education else ""
+
+    # 8. Cover letter / Note to hiring manager
+    if any(k in low for k in ("cover letter", "message to hiring manager", "additional notes", "coverletter", "note to recruiter", "summary")):
+        for key in ("cover_letter", "summary", "notes"):
+            if key in facts:
+                return str(facts[key])
+        return "Please find attached my resume for consideration. Thank you."
+
+    # 9. Consent / Terms / Agreement checkbox
+    if field_type == "checkbox" and any(k in low for k in ("agree", "terms", "privacy", "consent", "certify", "acknowledge")):
+        return "Yes"
+
+    # 10. Check facts directly for any matching key
+    for k, v in facts.items():
+        if k.lower() in low or low in k.lower():
+            return str(v)
+
     return ""
 
 
@@ -128,15 +217,14 @@ def plan_fill(fields: list[FormField], profile: CandidateProfile, ai: AIProvider
         if f.type == "file":
             plan.file_field = plan.file_field or f
             continue
-        if f.type in _UNSUPPORTED_TYPES:
-            if f.required:
-                plan.unknown.append(name)
-            continue
-        value = _known_value(name, profile)
+
+        value = _known_value(name, f.type, profile)
         if not value and f.required:
             value = accept_answer(ai.answer_question(name, facts), f.options) or ""
+
         if value and f.options:
-            value = next((o for o in f.options if o.lower() == value.lower()), "")
+            value = _match_option(f.options, value)
+
         if value:
             plan.values.append((f, value))
         elif f.required:
@@ -150,31 +238,70 @@ class Outcome:
     status: S
     reason: str | None = None
     confirmation: str | None = None
+    details: dict | None = None
 
 
-def _execute(db, app, conn: ApplicationConnector, profile, ai) -> Outcome:
+def _execute(
+    db: Session,
+    app: Application,
+    conn: ApplicationConnector,
+    profile: CandidateProfile,
+    ai: AIProvider,
+    dry_run: bool = False,
+) -> Outcome:
     resume = app.resume
     if resume is None or not Path(resume.path).exists():
         return Outcome(S.FAILED, "Selected resume file is missing")
+
     if conn.name != "mock":
         validate_external_url(app.application_url)
+
     conn.open(app.application_url)
     log_event(db, app, "OPENED", app.application_url)
-    if reason := conn.detect_blocker():
+
+    # Detect blockers / page state
+    page_type, reason = conn.detect_page_state()
+    if page_type == "ALREADY_APPLIED" or (reason and "already applied" in reason.lower()):
+        return Outcome(S.DUPLICATE, reason or "Already applied on site")
+    if reason:
         return Outcome(S.BLOCKED, reason)
+
     fields = conn.extract_fields()
     log_event(db, app, "FIELDS_EXTRACTED", f"{len(fields)} fields")
+
     plan = plan_fill(fields, profile, ai)
     if plan.unknown:
-        return Outcome(S.REQUIRES_MANUAL_ACTION, "Manual input needed for mandatory field(s): " + ", ".join(plan.unknown))
+        return Outcome(
+            S.REQUIRES_MANUAL_ACTION,
+            "Manual input needed for mandatory field(s): " + ", ".join(plan.unknown),
+        )
+
     log_event(db, app, "RESUME_SELECTED", resume.filename)
     if plan.file_field:
         conn.upload_resume(plan.file_field, Path(resume.path))
+
     for f, value in plan.values:
         conn.fill_field(f, value)
+
     log_event(db, app, "FORM_FILLED", ", ".join(f.label or f.name for f, _ in plan.values))  # labels only, no PII
+
+    if dry_run:
+        fields_summary = [f.label or f.name for f, _ in plan.values]
+        log_event(db, app, "DRY_RUN_COMPLETED", f"Simulated {len(fields_summary)} fields, resume: {resume.filename}")
+        return Outcome(
+            status=S.ELIGIBLE,
+            confirmation=f"DRY RUN PASSED: {len(plan.values)} fields filled, resume '{resume.filename}' ready to upload. Submission was simulated (not submitted).",
+            details={
+                "dry_run": True,
+                "fields_detected": [f.model_dump() for f in fields],
+                "fields_planned": [{"name": f.label or f.name, "value": v} for f, v in plan.values],
+                "resume_selected": resume.filename,
+            },
+        )
+
     if reason := conn.detect_blocker():
         return Outcome(S.BLOCKED, reason)
+
     confirmation = conn.submit()
     log_event(db, app, "SUBMITTED")
     if confirmation:
@@ -185,6 +312,7 @@ def _execute(db, app, conn: ApplicationConnector, profile, ai) -> Outcome:
 def apply_application(
     db: Session, application_id: int, connector: ApplicationConnector | None = None,
     ai: AIProvider | None = None, notifier: NotificationService | None = None,
+    dry_run: bool = False,
 ) -> Application:
     app = db.get(Application, application_id)
     if app is None:
@@ -193,6 +321,27 @@ def apply_application(
         raise ServiceError(409, f"Cannot apply from status {app.status}")
     if _is_duplicate(db, app):
         transition(db, app, S.DUPLICATE, "same job already applied")
+        db.commit()
+        return app
+
+    conn = connector or get_application_connector()
+    profile = db.get(CandidateProfile, 1) or CandidateProfile()
+
+    if dry_run:
+        try:
+            outcome = _execute(db, app, conn, profile, ai or get_ai_provider(), dry_run=True)
+        except Exception as exc:  # noqa: BLE001
+            log.exception("Dry run error for application %s", application_id)
+            outcome = Outcome(S.FAILED, f"Dry-run error: {exc}")
+        finally:
+            conn.close()
+
+        if outcome.status == S.ELIGIBLE:
+            app.confirmation_text = outcome.confirmation
+            app.failure_reason = None
+        else:
+            app.failure_reason = outcome.reason
+            transition(db, app, outcome.status, outcome.reason or "")
         db.commit()
         return app
 
@@ -209,10 +358,8 @@ def apply_application(
     log_event(db, app, "APPLYING")
     db.commit()
 
-    conn = connector or get_application_connector()
-    profile = db.get(CandidateProfile, 1) or CandidateProfile()
     try:
-        outcome = _execute(db, app, conn, profile, ai or get_ai_provider())
+        outcome = _execute(db, app, conn, profile, ai or get_ai_provider(), dry_run=False)
     except Exception as exc:  # noqa: BLE001
         log.exception("Application %s crashed", application_id)
         outcome = Outcome(S.FAILED, f"{type(exc).__name__}: {str(exc)[:200]}")

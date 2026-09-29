@@ -17,6 +17,9 @@ class DiscoveredJob(BaseModel):
     requirements: list[str] = []
 
 
+from datetime import datetime
+
+
 class FormField(BaseModel):
     ref: str  # opaque handle the connector uses to find the field again
     name: str
@@ -24,6 +27,23 @@ class FormField(BaseModel):
     type: str = "text"  # text | email | tel | url | textarea | select | file | checkbox | radio
     required: bool = False
     options: list[str] = []
+    placeholder: str = ""
+    id: str = ""
+
+
+class BrowserApplicationResult(BaseModel):
+    status: str
+    confirmation_text: str | None = None
+    confirmation_url: str | None = None
+    failure_reason: str | None = None
+    blocked_reason: str | None = None
+    manual_action_reason: str | None = None
+    submitted_at: datetime | None = None
+    page_type: str = "FORM_FOUND"
+    fields_detected: list[dict] = []
+    fields_filled: list[dict] = []
+    resume_uploaded: str | None = None
+    dry_run: bool = False
 
 
 class JobConnector(ABC):
@@ -47,6 +67,17 @@ class ApplicationConnector(ABC):
     @abstractmethod
     def detect_blocker(self) -> str | None:
         """Return a reason if CAPTCHA / MFA / bot check is present, else None. Never try to bypass."""
+
+    def detect_page_state(self) -> tuple[str, str | None]:
+        """Detect current page classification (FORM_FOUND, CAPTCHA, CLOUDFLARE, LOGIN_REQUIRED, ALREADY_APPLIED, etc.)."""
+        blocker = self.detect_blocker()
+        if blocker:
+            return "BLOCKED", blocker
+        return "FORM_FOUND", None
+
+    def get_current_url(self) -> str:
+        """Return current URL after navigation."""
+        return ""
 
     @abstractmethod
     def extract_fields(self) -> list[FormField]: ...

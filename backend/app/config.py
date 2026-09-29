@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     max_upload_mb: int = 5
     cors_origins: str = "http://localhost:5173"
     allow_local_urls: bool = False
+    max_applications_per_run: int = 10
 
     @property
     def sqlalchemy_url(self) -> str:

@@ -199,4 +199,5 @@ class AutomationRunResult(BaseModel):
     failed: int
     skipped: int
     duplicate: int
+    remaining: int = 0
     details: list[dict] = []

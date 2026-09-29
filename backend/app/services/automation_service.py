@@ -3,6 +3,7 @@ import logging
 from sqlalchemy.orm import Session
 
 from app.ai.client import get_ai_provider
+from app.config import settings
 from app.connectors import get_application_connector
 from app.models import Application, ApplicationStatus as S, CandidateProfile, Job
 from app.schemas.api import AutomationRunResult
@@ -83,9 +84,13 @@ class AutomationService:
         manual_count = 0
         failed_count = 0
 
+        max_apps = getattr(settings, "max_applications_per_run", 10)
         app_connector = get_application_connector()
         if auto_apply:
             for app in qualifying_apps:
+                if applied_count >= max_apps:
+                    log.info("Reached MAX_APPLICATIONS_PER_RUN cap (%d); stopping run", max_apps)
+                    break
                 try:
                     res = apply_application(
                         self.db,
@@ -128,6 +133,7 @@ class AutomationService:
 
         skipped_count = self.db.query(Application).filter(Application.status == S.SKIPPED.value).count()
         dup_count = self.db.query(Application).filter(Application.status == S.DUPLICATE.value).count()
+        remaining_count = max(0, len(qualifying_apps) - (applied_count + blocked_count + manual_count + failed_count))
 
         return AutomationRunResult(
             discovered=total_discovered,
@@ -139,11 +145,12 @@ class AutomationService:
             failed=failed_count,
             skipped=skipped_count,
             duplicate=dup_count,
+            remaining=remaining_count,
             details=details,
         )
 
 
-def run_job_application(db: Session, job_id: int, connector=None) -> Application:
+def run_job_application(db: Session, job_id: int, connector=None, dry_run: bool = False) -> Application:
     """End-to-end single job pipeline: match against all resumes -> select best -> apply safely -> return application."""
     from app.errors import ServiceError
     from app.services.application_service import _is_duplicate
@@ -182,8 +189,8 @@ def run_job_application(db: Session, job_id: int, connector=None) -> Application
     if app.status == S.DUPLICATE.value:
         return app
 
-    # Apply automatically
-    app = apply_application(db, app.id, connector=connector)
+    # Apply automatically (or simulate if dry_run)
+    app = apply_application(db, app.id, connector=connector, dry_run=dry_run)
     return app
 
 

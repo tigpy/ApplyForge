@@ -8,12 +8,13 @@
 | `ResumeParser` | services/resume_service.py | `PyMuPDFResumeParser` |
 | `ResumeRepository` | services/resume_service.py | DB-backed class |
 | `ResumeMatcher` | services/matching_service.py | `HybridResumeMatcher` |
-| `JobConnector` | connectors/base.py | `MockJobConnector` (register more in `connectors/__init__.py`) |
-| `ApplicationConnector` | connectors/base.py | `MockApplicationConnector`, `PlaywrightApplicationConnector` |
+| `JobConnector` | connectors/base.py | `MockJobConnector`, `PublicFeedJobConnector` (register more in `connectors/__init__.py`) |
+| `ApplicationConnector` | connectors/base.py | `MockApplicationConnector`, `PlaywrightApplicationConnector` (delegates to `GreenhouseApplicationConnector`, `LeverApplicationConnector`) |
 | `AIProvider` | ai/client.py | `MockAIProvider`, `OpenAIProvider` |
 | `NotificationService` | services/notification_service.py | `MockNotificationService`, `EmailNotificationService` |
 
 `ApplicationConnector` is a *page driver* (open, detect_blocker, extract_fields, fill_field, upload_resume, submit).
+`PlaywrightApplicationConnector` inspects target URLs and page markup to route directly to ATS-specific adapters (`GreenhouseApplicationConnector`, `LeverApplicationConnector`) or fall back to generic page filling.
 `ApplicationService` decides what to fill, so blocker/unknown-field/confirmation rules live in one place for every site.
 
 ## Data model (SQLite)

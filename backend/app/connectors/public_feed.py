@@ -57,6 +57,13 @@ _PUBLIC_FEED_FALLBACK = [
 ]
 
 
+import time
+
+_CACHE_TTL_SEC: float = 30.0
+_LAST_FETCH_TIME: float = 0.0
+_CACHED_ONLINE_JOBS: list[DiscoveredJob] = []
+
+
 class PublicFeedJobConnector(JobConnector):
     name = "public_feed"
 
@@ -64,32 +71,41 @@ class PublicFeedJobConnector(JobConnector):
         self.timeout_sec = timeout_sec
 
     def discover_jobs(self, query: str = "") -> list[DiscoveredJob]:
-        jobs: list[DiscoveredJob] = []
+        global _LAST_FETCH_TIME, _CACHED_ONLINE_JOBS
 
-        # Attempt online fetch from public Arbeitnow / RemoteOK API
-        try:
-            import httpx
+        now = time.time()
+        if _CACHED_ONLINE_JOBS and (now - _LAST_FETCH_TIME < _CACHE_TTL_SEC):
+            jobs = [j.model_copy() for j in _CACHED_ONLINE_JOBS]
+        else:
+            jobs = []
+            try:
+                import httpx
 
-            resp = httpx.get("https://www.arbeitnow.com/api/job-board-api", timeout=self.timeout_sec)
-            if resp.status_code == 200:
-                data = resp.json()
-                for item in data.get("data", [])[:20]:
-                    ext_id = f"arbeitnow-{item.get('slug', item.get('id', ''))}"
-                    remote = "remote" if item.get("remote") else "onsite"
-                    tags = item.get("tags") or []
-                    jobs.append(DiscoveredJob(
-                        external_id=ext_id,
-                        company=item.get("company_name", "Unknown"),
-                        title=item.get("title", "Software Engineer"),
-                        location=item.get("location", "Remote"),
-                        remote_type=remote,
-                        url=item.get("url", ""),
-                        application_url=item.get("url", ""),
-                        description=item.get("description", "")[:1000],
-                        requirements=tags[:10],
-                    ))
-        except Exception as exc:
-            log.info("Public feed online query skipped or unavailable (%s); using verified feed fallback", exc)
+                resp = httpx.get("https://www.arbeitnow.com/api/job-board-api", timeout=self.timeout_sec)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    for item in data.get("data", [])[:20]:
+                        ext_id = f"arbeitnow-{item.get('slug', item.get('id', ''))}"
+                        remote = "remote" if item.get("remote") else "onsite"
+                        tags = item.get("tags") or []
+                        jobs.append(DiscoveredJob(
+                            external_id=ext_id,
+                            company=item.get("company_name", "Unknown"),
+                            title=item.get("title", "Software Engineer"),
+                            location=item.get("location", "Remote"),
+                            remote_type=remote,
+                            url=item.get("url", ""),
+                            application_url=item.get("url", ""),
+                            description=item.get("description", "")[:1000],
+                            requirements=tags[:10],
+                        ))
+                    _CACHED_ONLINE_JOBS = [j.model_copy() for j in jobs]
+                    _LAST_FETCH_TIME = now
+                elif resp.status_code == 429:
+                    log.warning("Public feed returned 429 Too Many Requests; backing off to cached fallback")
+                    _LAST_FETCH_TIME = now
+            except Exception as exc:
+                log.info("Public feed online query skipped or unavailable (%s); using verified feed fallback", exc)
 
         if not jobs:
             jobs = [j.model_copy() for j in _PUBLIC_FEED_FALLBACK]

@@ -47,7 +47,7 @@ export interface Profile {
 export interface AutomationRunResult {
   discovered: number; matched: number; eligible: number; applied: number;
   requires_manual_action: number; blocked: number; failed: number;
-  skipped: number; duplicate: number; details: Array<{
+  skipped: number; duplicate: number; remaining?: number; details: Array<{
     job_id: number; company: string; role: string; resume: string | null;
     match_score: number; status: string; message: string;
   }>;

@@ -54,9 +54,9 @@ def match_job(job_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{job_id}/apply", response_model=ApplicationDetailOut)
-def apply_job(job_id: int, db: Session = Depends(get_db)):
+def apply_job(job_id: int, dry_run: bool = False, db: Session = Depends(get_db)):
     """Automatic application pipeline for a specific job: match -> select best resume -> apply -> notify -> result."""
-    app = run_job_application(db, job_id)
+    app = run_job_application(db, job_id, dry_run=dry_run)
     return application_detail_out(app)
 
 
