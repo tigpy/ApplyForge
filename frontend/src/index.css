@@ -1,1 +1,191 @@
 @import "tailwindcss";
+
+@theme {
+  --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --color-forge-black: #000000;
+  --color-forge-void: #050505;
+  --color-forge-surface: #0c0d10;
+  --color-forge-elevated: #14161c;
+  --color-forge-deep: #1A0000;
+  --color-forge-dark-orange: #993300;
+  --color-forge-mid-orange: #FF5A00;
+  --color-forge-orange: #FF8A00;
+  --color-forge-amber: #FFB400;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  background-color: #030304;
+  color: #E5E7EB;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Glass & Mechanical Surface Utilities */
+.glass-panel {
+  background: rgba(10, 11, 15, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 138, 0, 0.12);
+  box-shadow: 0 4px 24px -1px rgba(0, 0, 0, 0.6), inset 0 1px 0 0 rgba(255, 180, 0, 0.08);
+}
+
+.glass-panel-subtle {
+  background: rgba(8, 9, 12, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel-interactive {
+  background: rgba(12, 13, 18, 0.75);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 138, 0, 0.15);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-interactive:hover {
+  background: rgba(18, 19, 26, 0.85);
+  border-color: rgba(255, 180, 0, 0.35);
+  box-shadow: 0 8px 32px -4px rgba(255, 90, 0, 0.15), inset 0 1px 0 0 rgba(255, 180, 0, 0.2);
+  transform: translateY(-1px);
+}
+
+/* Glow effects */
+.glow-amber {
+  filter: drop-shadow(0 0 12px rgba(255, 180, 0, 0.45));
+}
+
+.glow-orange {
+  filter: drop-shadow(0 0 14px rgba(255, 138, 0, 0.5));
+}
+
+.text-glow-amber {
+  text-shadow: 0 0 12px rgba(255, 180, 0, 0.4);
+}
+
+.box-glow-amber {
+  box-shadow: 0 0 24px -4px rgba(255, 180, 0, 0.3);
+}
+
+/* Background atmospheric grid / radial glow */
+.bg-reactor-grid {
+  background-image: 
+    radial-gradient(circle at 50% 20%, rgba(255, 138, 0, 0.08) 0%, transparent 60%),
+    linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+  background-size: 100% 100%, 32px 32px, 32px 32px;
+}
+
+/* Reactor Keyframe Animations */
+@keyframes spin-slow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spin-reverse {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes pulse-energy {
+  0%, 100% {
+    opacity: 0.85;
+    filter: drop-shadow(0 0 8px rgba(255, 180, 0, 0.6));
+  }
+  50% {
+    opacity: 1;
+    filter: drop-shadow(0 0 20px rgba(255, 90, 0, 0.95));
+  }
+}
+
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -100;
+  }
+}
+
+@keyframes ping-subtle {
+  0% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+  50% {
+    transform: scale(1.15);
+    opacity: 0.2;
+  }
+  100% {
+    transform: scale(0.95);
+    opacity: 0.8;
+  }
+}
+
+.animate-spin-slow {
+  animation: spin-slow 28s linear infinite;
+}
+
+.animate-spin-mid {
+  animation: spin-slow 14s linear infinite;
+}
+
+.animate-spin-reverse {
+  animation: spin-reverse 22s linear infinite;
+}
+
+.animate-spin-reverse-fast {
+  animation: spin-reverse 10s linear infinite;
+}
+
+.animate-pulse-energy {
+  animation: pulse-energy 3s ease-in-out infinite;
+}
+
+.animate-dash-flow {
+  animation: dash-flow 8s linear infinite;
+}
+
+.animate-ping-subtle {
+  animation: ping-subtle 3s ease-in-out infinite;
+}
+
+/* Reduced motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow,
+  .animate-spin-mid,
+  .animate-spin-reverse,
+  .animate-spin-reverse-fast,
+  .animate-pulse-energy,
+  .animate-dash-flow,
+  .animate-ping-subtle {
+    animation: none !important;
+  }
+}
+
+/* Custom Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #050505;
+}
+::-webkit-scrollbar-thumb {
+  background: #1f222a;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff8a00;
+}
