@@ -13,7 +13,9 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
     openai_model: str = "gpt-4o-mini"
-    ai_provider: str = "auto"  # auto | openai | mock
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-3.8-flash"
+    ai_provider: str = "auto"  # auto | openai | gemini | mock
 
     smtp_host: str = ""
     smtp_port: int = 587

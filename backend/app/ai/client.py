@@ -1,6 +1,9 @@
 """Thin AI abstraction: AIProvider -> OpenAIProvider | MockAIProvider. Structured outputs only."""
+import logging
 from abc import ABC, abstractmethod
 from functools import lru_cache
+
+log = logging.getLogger(__name__)
 
 from app.ai.application_answers import ANSWER_PROMPT, QuestionAnswer, mock_answer
 from app.ai.matching import (
@@ -78,11 +81,66 @@ class OpenAIProvider(AIProvider):
         return self._parse(ANSWER_PROMPT, f"FACTS:\n{facts_text}\n\nQUESTION:\n{question}", QuestionAnswer)
 
 
+class GeminiProvider(AIProvider):
+    """Google Gemini AI via OpenAI-compatible endpoint with automatic fallback."""
+
+    name = "gemini"
+
+    def __init__(self, api_key: str, model: str = "gemini-3.8-flash"):
+        from openai import OpenAI
+
+        self._client = OpenAI(
+            api_key=api_key,
+            base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
+        )
+        self._model = model or "gemini-3.8-flash"
+        self._mock = MockAIProvider()
+
+    def _parse(self, system: str, user: str, schema):
+        try:
+            completion = self._client.beta.chat.completions.parse(
+                model=self._model,
+                messages=[{"role": "system", "content": system}, {"role": "user", "content": user[:_MAX_CHARS]}],
+                response_format=schema,
+            )
+            parsed = completion.choices[0].message.parsed
+            if parsed is not None:
+                return parsed
+        except Exception as exc:
+            log.warning("Gemini API call failed (%s); falling back to deterministic extraction", exc)
+        return None
+
+    def extract_requirements(self, description: str) -> RequirementExtraction:
+        res = self._parse(REQUIREMENTS_PROMPT, description, RequirementExtraction)
+        return res if res is not None else self._mock.extract_requirements(description)
+
+    def semantic_match(self, job_text: str, resume_text: str) -> SemanticMatch:
+        user = f"JOB:\n{job_text[:_MAX_CHARS // 2]}\n\nRESUME:\n{resume_text[:_MAX_CHARS // 2]}"
+        res = self._parse(SEMANTIC_MATCH_PROMPT, user, SemanticMatch)
+        return res if res is not None else self._mock.semantic_match(job_text, resume_text)
+
+    def answer_question(self, question: str, facts: dict[str, str]) -> QuestionAnswer:
+        facts_text = "\n".join(f"{k}: {v}" for k, v in facts.items())
+        res = self._parse(ANSWER_PROMPT, f"FACTS:\n{facts_text}\n\nQUESTION:\n{question}", QuestionAnswer)
+        return res if res is not None else self._mock.answer_question(question, facts)
+
+
 @lru_cache
 def get_ai_provider() -> AIProvider:
     mode = settings.ai_provider.lower()
-    if mode == "openai" or (mode == "auto" and settings.openai_api_key):
-        if not settings.openai_api_key:
+    gemini_key = settings.gemini_api_key or (
+        settings.openai_api_key if settings.openai_api_key.startswith(("AQ.", "AIza")) else ""
+    )
+    openai_key = settings.openai_api_key if not settings.openai_api_key.startswith(("AQ.", "AIza")) else ""
+
+    if mode in ("gemini", "google") or (mode == "auto" and gemini_key):
+        if not gemini_key:
+            raise RuntimeError("AI_PROVIDER=gemini requires GEMINI_API_KEY (or Gemini key in OPENAI_API_KEY)")
+        return GeminiProvider(gemini_key, settings.gemini_model)
+
+    if mode == "openai" or (mode == "auto" and openai_key):
+        if not openai_key:
             raise RuntimeError("AI_PROVIDER=openai requires OPENAI_API_KEY")
-        return OpenAIProvider(settings.openai_api_key, settings.openai_model)
+        return OpenAIProvider(openai_key, settings.openai_model)
+
     return MockAIProvider()
